@@ -32,6 +32,11 @@ const App: React.FC = () => {
     }
   };
 
+  const handleRemoveFile = useCallback(() => {
+    setFile(null);
+    setFileInfo(null);
+  }, []);
+
   const handleGenerateScript = useCallback(async () => {
     if (!youtubeUrl && !fileInfo) {
       setError("Please provide a YouTube URL or upload a document to begin.");
@@ -40,17 +45,25 @@ const App: React.FC = () => {
 
     setIsLoading(true);
     setError(null);
-    setGeneratedScript(null);
+    setGeneratedScript(''); // Initialize with empty string for streaming
 
     try {
-      const script = await generateScriptFromContent(youtubeUrl, fileInfo);
-      setGeneratedScript(script);
+      const stream = await generateScriptFromContent(youtubeUrl, fileInfo);
+      
+      for await (const chunk of stream) {
+        const chunkText = chunk.text;
+        if (chunkText) {
+          setGeneratedScript((prev) => (prev ?? '') + chunkText);
+        }
+      }
+
     } catch (err) {
       if (err instanceof Error) {
         setError(`An error occurred: ${err.message}. Please check your API key and try again.`);
       } else {
         setError("An unknown error occurred.");
       }
+      setGeneratedScript(null); // Reset on error
     } finally {
       setIsLoading(false);
     }
@@ -66,6 +79,7 @@ const App: React.FC = () => {
             onUrlChange={setYoutubeUrl}
             file={file}
             onFileChange={handleFileChange}
+            onRemoveFile={handleRemoveFile}
             onGenerate={handleGenerateScript}
             isLoading={isLoading}
           />

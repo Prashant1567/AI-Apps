@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { DocumentIcon } from './icons/DocumentIcon';
 import { WarningIcon } from './icons/WarningIcon';
 import { SaveIcon } from './icons/SaveIcon';
@@ -111,7 +111,7 @@ const FormattedScript: React.FC<{ script: string }> = ({ script }) => {
   }
 
   return (
-    <div className="text-base text-slate-300 leading-relaxed p-6">
+    <div className="text-base text-slate-300 leading-relaxed">
       {renderedComponents}
     </div>
   );
@@ -119,9 +119,17 @@ const FormattedScript: React.FC<{ script: string }> = ({ script }) => {
 
 
 export const OutputSection: React.FC<OutputSectionProps> = ({ script, isLoading, error }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [script]);
+
   const handleSaveScript = () => {
     if (!script) return;
-    const blob = new Blob([script], { type: 'text/markdown;charset=utf-8' });
+    const blob = new Blob([script], { type: 'text/markdown;charset=utf-t' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -132,33 +140,52 @@ export const OutputSection: React.FC<OutputSectionProps> = ({ script, isLoading,
     URL.revokeObjectURL(url);
   };
 
-  return (
-    <div className="mt-8 bg-slate-800/50 rounded-2xl border border-slate-700 min-h-[300px] overflow-hidden flex flex-col">
-      {isLoading && <LoadingSkeleton />}
-      {!isLoading && error && <div className="p-6"><ErrorDisplay message={error} /></div>}
-      {!isLoading && !error && script && (
+  const renderContent = () => {
+    if (error) {
+      return <div className="p-6"><ErrorDisplay message={error} /></div>;
+    }
+
+    if (isLoading && script === null) {
+      return <LoadingSkeleton />;
+    }
+
+    if (script !== null) {
+      return (
         <>
           <div className="flex justify-between items-center px-6 py-4 border-b border-slate-700 flex-shrink-0">
             <h3 className="text-lg font-semibold text-slate-200">Generated Script</h3>
             <button
               onClick={handleSaveScript}
-              className="flex items-center gap-2 rounded-md bg-slate-700/50 px-3 py-1.5 text-sm font-semibold text-slate-300 ring-1 ring-inset ring-slate-700 hover:bg-slate-700 transition-colors duration-200"
+              disabled={isLoading}
+              className="flex items-center gap-2 rounded-md bg-slate-700/50 px-3 py-1.5 text-sm font-semibold text-slate-300 ring-1 ring-inset ring-slate-700 hover:bg-slate-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               aria-label="Save generated script"
             >
               <SaveIcon className="h-4 w-4" />
               <span>Save Script</span>
             </button>
           </div>
-          <div className="overflow-y-auto flex-grow">
-            <FormattedScript script={script} />
+          <div ref={scrollContainerRef} className="overflow-y-auto flex-grow">
+            <div className="p-6">
+              <FormattedScript script={script} />
+              {isLoading && (
+                <span className="inline-block w-2.5 h-2.5 bg-cyan-400 rounded-full animate-pulse ml-1" aria-hidden="true"></span>
+              )}
+            </div>
           </div>
         </>
-      )}
-      {!isLoading && !error && !script && (
-        <div className="flex-grow flex items-center justify-center">
-          <ScriptPlaceholder />
-        </div>
-      )}
+      );
+    }
+
+    return (
+      <div className="flex-grow flex items-center justify-center">
+        <ScriptPlaceholder />
+      </div>
+    );
+  };
+
+  return (
+    <div className="mt-8 bg-slate-800/50 rounded-2xl border border-slate-700 min-h-[300px] overflow-hidden flex flex-col">
+      {renderContent()}
     </div>
   );
 };

@@ -35,7 +35,7 @@ You are an expert scriptwriter and data storyteller. Your task is to transform t
 export const generateScriptFromContent = async (
   youtubeUrl: string,
   fileInfo: FileInfo | null
-): Promise<string> => {
+) => {
   const model = "gemini-2.5-flash";
 
   const parts: Part[] = [
@@ -56,19 +56,13 @@ export const generateScriptFromContent = async (
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await ai.models.generateContentStream({
       model: model,
       contents: { parts: parts },
     });
-    
-    if (response && response.text) {
-        return response.text;
-    } else {
-        throw new Error("Received an empty response from the API.");
-    }
-
+    return response;
   } catch (error) {
-    console.error("Error generating content:", error);
+    console.error("Error generating content stream:", error);
     throw new Error("Failed to generate script from Gemini API.");
   }
 };
